@@ -41,13 +41,13 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * A {@link TestResultFormatter} which prints a short statistic for each of the tests
  */
-class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements TestResultFormatter {
+public class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements TestResultFormatter {
 
-    private OutputStream outputStream;
-    private final Map<TestIdentifier, Stats> testIds = new ConcurrentHashMap<>();
-    private TestPlan testPlan;
-    private BufferedWriter writer;
-    private boolean useLegacyReportingName = true;
+    protected OutputStream outputStream;
+    protected final Map<TestIdentifier, Stats> testIds = new ConcurrentHashMap<>();
+    protected TestPlan testPlan;
+    protected BufferedWriter writer;
+    protected boolean useLegacyReportingName = true;
 
     @Override
     public void testPlanExecutionStarted(final TestPlan testPlan) {
@@ -112,7 +112,7 @@ class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements
         if (testIdentifier.isTest()) {
             final StringBuilder sb = new StringBuilder();
             sb.append("Test: ");
-            sb.append(this.useLegacyReportingName ? testIdentifier.getLegacyReportingName() : testIdentifier.getDisplayName());
+            sb.append(determineTestName(testIdentifier));
             sb.append(" took ");
             stats.appendElapsed(sb);
             sb.append(" SKIPPED");
@@ -145,7 +145,7 @@ class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements
         if (testClass.isPresent()) {
             // if this is a test class, then print it out
             try {
-                this.writer.write("Testcase: " + testClass.get().getClassName());
+                this.writer.write("Testcase: " + determineTestSuiteName(testClass));
                 this.writer.newLine();
             } catch (IOException ioe) {
                 handleException(ioe);
@@ -176,7 +176,7 @@ class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements
         if (testIdentifier.isTest() && shouldReportExecutionFinished(testIdentifier, testExecutionResult)) {
             final StringBuilder sb = new StringBuilder();
             sb.append("Test: ");
-            sb.append(this.useLegacyReportingName ? testIdentifier.getLegacyReportingName() : testIdentifier.getDisplayName());
+            sb.append(determineTestName(testIdentifier));
             if (stats != null) {
                 sb.append(" took ");
                 stats.appendElapsed(sb);
@@ -234,6 +234,16 @@ class LegacyPlainResultFormatter extends AbstractJUnitResultFormatter implements
     @Override
     public void setUseLegacyReportingName(final boolean useLegacyReportingName) {
         this.useLegacyReportingName = useLegacyReportingName;
+    }
+
+    protected String determineTestName(TestIdentifier testIdentifier) {
+        return this.useLegacyReportingName ? testIdentifier.getLegacyReportingName()
+                                           : testIdentifier.getDisplayName();
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    protected String determineTestSuiteName(Optional<ClassSource> testClass) {
+        return testClass.map(ClassSource::getClassName).orElse("UNKNOWN");
     }
 
     protected boolean shouldReportExecutionFinished(final TestIdentifier testIdentifier, final TestExecutionResult testExecutionResult) {
